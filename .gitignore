@@ -1,0 +1,20 @@
+# Local/system files
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Competition data and generated artifacts
+*.parquet
+sample_submission.csv
+test_write.txt
+models/
+submissions/
+
+# Local Python environments
+.venv/
+venv/
+env/
+
+# Notebook/runtime clutter
+.ipynb_checkpoints/
+.pytest_cache/

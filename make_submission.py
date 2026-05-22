@@ -1,0 +1,81 @@
+"""Create a submission file from a saved LightGBM baseline model."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+from pathlib import Path
+
+os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/matplotlib")
+
+import duckdb
+import lightgbm as lgb
+import pandas as pd
+
+
+SEQ_FEATURE_EXPRESSIONS = {
+    "seq_char_len": "length(seq)",
+    "seq_len": "array_length(string_split(seq, ','))",
+    "seq_first": "cast(list_extract(string_split(seq, ','), 1) as float)",
+    "seq_last": "cast(list_extract(string_split(seq, ','), array_length(string_split(seq, ','))) as float)",
+    "seq_unique": "list_unique(string_split(seq, ','))",
+}
+
+
+def select_expr(column: str) -> str:
+    if column in SEQ_FEATURE_EXPRESSIONS:
+        return f"{SEQ_FEATURE_EXPRESSIONS[column]} as {column}"
+    return column
+
+
+def coerce_features(df: pd.DataFrame, feature_columns: list[str]) -> pd.DataFrame:
+    for col in feature_columns:
+        if df[col].dtype == "object" or pd.api.types.is_string_dtype(df[col]):
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+        if pd.api.types.is_float_dtype(df[col]) or pd.api.types.is_integer_dtype(df[col]):
+            df[col] = df[col].astype("float32")
+    return df
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test-path", default="test.parquet")
+    parser.add_argument("--sample-submission", default="sample_submission.csv")
+    parser.add_argument("--model-dir", default="models/baseline_lgbm")
+    parser.add_argument("--output", default="submissions/baseline_lgbm.csv")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    model_dir = Path(args.model_dir)
+    metadata = json.loads((model_dir / "metadata.json").read_text(encoding="utf-8"))
+    feature_columns = metadata["feature_columns"]
+
+    selected = ", ".join(["ID"] + [select_expr(col) for col in feature_columns])
+    con = duckdb.connect()
+    test_df = con.execute(
+        f"select {selected} from read_parquet('{args.test_path}') order by ID"
+    ).fetchdf()
+    ids = test_df["ID"].copy()
+    test_df = coerce_features(test_df, feature_columns)
+
+    model = lgb.Booster(model_file=str(model_dir / "model.txt"))
+    pred = model.predict(test_df[feature_columns])
+
+    sample = pd.read_csv(args.sample_submission)
+    submission = pd.DataFrame({"ID": ids, "clicked": pred})
+    submission = sample[["ID"]].merge(submission, on="ID", how="left")
+    if submission["clicked"].isna().any():
+        raise ValueError("Missing predictions after aligning with sample_submission.csv")
+
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    submission.to_csv(output, index=False)
+    print(f"Wrote {output} with shape {submission.shape}")
+    print(submission.head().to_string(index=False))
+
+
+if __name__ == "__main__":
+    main()
