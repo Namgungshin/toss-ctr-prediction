@@ -1,4 +1,4 @@
-"""Create a submission file from a saved LightGBM baseline model."""
+"""저장된 LightGBM 베이스라인 모델로 제출 파일을 생성한다."""
 
 from __future__ import annotations
 
@@ -68,12 +68,12 @@ def main() -> None:
     submission = pd.DataFrame({"ID": ids, "clicked": pred})
     submission = sample[["ID"]].merge(submission, on="ID", how="left")
     if submission["clicked"].isna().any():
-        raise ValueError("Missing predictions after aligning with sample_submission.csv")
+        raise ValueError("sample_submission.csv와 정렬한 뒤 누락된 예측값이 있습니다.")
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     submission.to_csv(output, index=False)
-    print(f"Wrote {output} with shape {submission.shape}")
+    print(f"제출 파일 저장: {output}, shape={submission.shape}")
     print(submission.head().to_string(index=False))
 
 

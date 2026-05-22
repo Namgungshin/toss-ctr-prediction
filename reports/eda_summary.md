@@ -1,13 +1,13 @@
-# Toss CTR EDA Summary
+# 토스 CTR EDA 요약
 
 ### train.parquet
 
-- rows: 10,704,179
-- columns: 119
-- row groups: 1
-- types: {'string': 6, 'float': 112, 'int32': 1}
+- 행 수: 10,704,179
+- 열 수: 119
+- row group 개수: 1
+- 타입 분포: {'string': 6, 'float': 112, 'int32': 1}
 
-| idx | column | type |
+| 인덱스 | 컬럼 | 타입 |
 |---:|---|---|
 | 0 | `gender` | `string` |
 | 1 | `age_group` | `string` |
@@ -131,12 +131,12 @@
 
 ### test.parquet
 
-- rows: 1,527,298
-- columns: 119
-- row groups: 1
-- types: {'string': 7, 'float': 112}
+- 행 수: 1,527,298
+- 열 수: 119
+- row group 개수: 1
+- 타입 분포: {'string': 7, 'float': 112}
 
-| idx | column | type |
+| 인덱스 | 컬럼 | 타입 |
 |---:|---|---|
 | 0 | `ID` | `string` |
 | 1 | `gender` | `string` |
@@ -258,15 +258,15 @@
 | 117 | `history_b_29` | `float` |
 | 118 | `history_b_30` | `float` |
 
-## Target
+## 타깃 분포
 
 | n | clicks | ctr |
 | --- | --- | --- |
 | 10704179 | 204179.0 | 0.019074699703732535 |
 
-## Day / Hour Distribution
+## 요일/시간 분포
 
-### Train by day
+### Train 요일별 분포
 
 | day_of_week | n | ctr |
 | --- | --- | --- |
@@ -278,13 +278,13 @@
 | 6 | 1530282 | 0.01978850956882457 |
 | 7 | 1526335 | 0.017253748357994803 |
 
-### Test by day
+### Test 요일별 분포
 
 | day_of_week | n |
 | --- | --- |
 | 7 | 1527298 |
 
-### Train by hour
+### Train 시간별 분포
 
 | hour | n | ctr |
 | --- | --- | --- |
@@ -313,7 +313,7 @@
 | 22 | 480611 | 0.01912565463545362 |
 | 23 | 413938 | 0.019389377153100223 |
 
-### Test by hour
+### Test 시간별 분포
 
 | hour | n |
 | --- | --- |
@@ -342,7 +342,7 @@
 | 22 | 54189 |
 | 23 | 50601 |
 
-## Selected Cardinalities
+## 주요 컬럼 cardinality
 
 | column_name | approx_nunique | nulls |
 | --- | --- | --- |

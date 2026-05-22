@@ -1,41 +1,42 @@
-# Toss Ads CTR Prediction
+# 토스 광고 클릭 예측(CTR) 모델 개발
 
-DACON Toss ads CTR prediction competition workspace.
+DACON 토스 광고 클릭 예측 경진대회 실험용 작업 공간입니다.
 
-This repository contains the reproducible experiment code and notes used for the
-first baseline cycle. Competition raw data and generated submissions are not
-tracked because they are large and should be downloaded from DACON directly.
+이 저장소에는 첫 베이스라인 실험을 재현하기 위한 코드와 기록만 포함합니다.
+원본 대회 데이터와 생성된 제출 파일은 용량이 크고 대회 데이터이므로 Git에는
+올리지 않았습니다. 데이터는 DACON에서 직접 내려받아 프로젝트 루트에 배치해야
+합니다.
 
-## Competition
+## 대회 개요
 
-- Task: binary click-through-rate prediction for ad impressions
-- Target: `clicked`
-- Evaluation: AP and weighted log loss
-- Data shape observed locally:
-  - train: 10,704,179 rows, 119 columns
-  - test: 1,527,298 rows, 119 columns
-- Important split signal: all test rows have `day_of_week = 7`
+- 과제: 광고 노출 로그 기반 클릭 여부 이진분류
+- 타깃: `clicked`
+- 평가: AP와 Weighted Log Loss
+- 로컬에서 확인한 데이터 크기:
+  - train: 10,704,179행, 119열
+  - test: 1,527,298행, 119열
+- 중요한 검증 힌트: test 전체가 `day_of_week = 7`
 
-## Repository Contents
+## 저장소 구성
 
-| path | purpose |
+| 경로 | 설명 |
 |---|---|
-| `metrics.py` | Local AP, weighted log loss, and proxy metric helpers |
-| `eda_summary.py` | Generates compact parquet/schema/distribution summary |
-| `train_baseline.py` | LightGBM baseline with day7 or random validation |
-| `make_submission.py` | Creates a DACON submission from a saved model |
-| `calibrate_submission.py` | Prior-calibration experiment, kept for record |
-| `blend_submissions.py` | Simple submission blending utility |
-| `reports/eda_summary.md` | EDA snapshot generated from local data |
-| `reports/experiment_log.md` | Submission and experiment score log |
+| `metrics.py` | AP, Weighted Log Loss, 로컬 비교용 보조 점수 |
+| `eda_summary.py` | parquet 스키마와 주요 분포 요약 리포트 생성 |
+| `train_baseline.py` | day7/무작위 검증 기반 LightGBM 베이스라인 학습 |
+| `make_submission.py` | 저장된 모델로 DACON 제출 파일 생성 |
+| `calibrate_submission.py` | 사전확률 보정 실험 기록용 스크립트 |
+| `blend_submissions.py` | 제출 파일 단순 블렌딩 유틸리티 |
+| `reports/eda_summary.md` | 로컬 데이터 기준 EDA 요약 |
+| `reports/experiment_log.md` | 제출 결과와 실험 기록 |
 
-## Setup
+## 환경 준비
 
 ```bash
 python3 -m pip install -r requirements.txt
 ```
 
-Place the DACON files in the project root:
+DACON에서 받은 파일을 프로젝트 루트에 둡니다.
 
 ```text
 train.parquet
@@ -43,15 +44,15 @@ test.parquet
 sample_submission.csv
 ```
 
-## Reproduce Current Baseline
+## 현재 베이스라인 재현
 
-Generate EDA summary:
+EDA 요약 생성:
 
 ```bash
 python3 eda_summary.py --output reports/eda_summary.md
 ```
 
-Train the first day7-validation baseline:
+첫 day7 validation 베이스라인 학습:
 
 ```bash
 python3 train_baseline.py \
@@ -61,7 +62,7 @@ python3 train_baseline.py \
   --seed 42
 ```
 
-Create the submission:
+제출 파일 생성:
 
 ```bash
 python3 make_submission.py \
@@ -69,7 +70,7 @@ python3 make_submission.py \
   --output submissions/baseline_lgbm.csv
 ```
 
-Train with basic `seq` features:
+기본 `seq` 파생 피처를 포함한 모델 학습:
 
 ```bash
 python3 train_baseline.py \
@@ -80,19 +81,16 @@ python3 train_baseline.py \
   --seed 42
 ```
 
-## Current Results
+## 현재 결과
 
-| submission | local validation | public score | note |
+| 제출 파일 | 로컬 검증 | 공개 리더보드 점수 | 메모 |
 |---|---:|---:|---|
-| `baseline_lgbm.csv` | AP 0.05833 / WLL 0.61761 | 0.340445203 | First raw LightGBM baseline |
-| `baseline_lgbm_prior_calibrated.csv` | n/a | 0.2045772218 | Prior calibration hurt badly |
-| `baseline_lgbm_seq.csv` | AP 0.05890 / WLL 0.61836 | pending | Basic sequence features |
+| `baseline_lgbm.csv` | AP 0.05833 / WLL 0.61761 | 0.340445203 | 첫 LightGBM 원본 예측 베이스라인 |
+| `baseline_lgbm_prior_calibrated.csv` | n/a | 0.2045772218 | 실제 CTR 사전확률 보정은 점수를 크게 악화 |
+| `baseline_lgbm_seq.csv` | AP 0.05890 / WLL 0.61836 | 미제출 | 기본 시퀀스 길이/처음/마지막/고유 토큰 피처 추가 |
 
-## Takeaways
+## 현재까지의 결론
 
-- Use `day_of_week = 7` validation as the main local validation because the test
-  set is day 7 only.
-- Do not calibrate predictions down to the real train CTR prior; the public
-  score got much worse.
-- Next high-value experiments are count encoding, target encoding with leakage
-  controls, and better sequence-derived features.
+- test가 모두 `day_of_week = 7`이므로 day7 holdout을 주 검증셋으로 사용한다.
+- 예측값을 실제 train CTR 사전확률까지 낮추는 보정은 사용하지 않는다. 공개 리더보드 점수가 크게 하락했다.
+- 다음으로는 안정적인 범주 조합에 대한 빈도 인코딩, 누수를 막은 타깃 인코딩, 더 정교한 시퀀스 파생 피처를 실험한다.

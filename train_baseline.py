@@ -1,7 +1,7 @@
-"""Train a first LightGBM baseline for the Toss CTR competition.
+"""토스 CTR 대회용 첫 LightGBM 베이스라인을 학습한다.
 
-The default run samples the large parquet file to keep iteration fast. Increase
-`--train-sample-frac` and `--valid-sample-frac` once the pipeline is stable.
+기본 설정은 빠른 반복을 위해 큰 parquet 파일을 샘플링한다. 파이프라인이 안정화되면
+`--train-sample-frac`와 `--valid-sample-frac`를 늘려 실험한다.
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ def read_duckdb_frame(
     if filters:
         clauses.append("where " + " and ".join(f"({f})" for f in filters))
     query = "\n".join(clauses)
-    print(f"Loading {path}: columns={len(columns) + 1}, where={where}, sample_frac={sample_frac}")
+    print(f"{path} 로딩: columns={len(columns) + 1}, where={where}, sample_frac={sample_frac}")
     return con.execute(query).fetchdf()
 
 
@@ -228,7 +228,7 @@ def main() -> None:
             args.seed,
         )
 
-    print(f"train shape: {train_df.shape}, valid shape: {valid_df.shape}")
+    print(f"train 크기: {train_df.shape}, valid 크기: {valid_df.shape}")
     print(f"train ctr: {train_df['clicked'].mean():.6f}, valid ctr: {valid_df['clicked'].mean():.6f}")
 
     model, metrics, valid_pred = train_model(train_df, valid_df, feature_columns, args.seed)
@@ -258,9 +258,9 @@ def main() -> None:
             "prediction": valid_pred,
         }
     ).to_csv(valid_pred_path, index=False)
-    print(f"Saved model to {model_path}")
-    print(f"Saved metadata to {metadata_path}")
-    print(f"Saved validation predictions to {valid_pred_path}")
+    print(f"모델 저장: {model_path}")
+    print(f"메타데이터 저장: {metadata_path}")
+    print(f"검증 예측 저장: {valid_pred_path}")
 
 
 if __name__ == "__main__":

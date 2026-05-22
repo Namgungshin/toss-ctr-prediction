@@ -1,4 +1,4 @@
-"""Generate a compact EDA summary for the Toss CTR parquet files."""
+"""토스 CTR parquet 파일의 간단한 EDA 요약을 생성한다."""
 
 from __future__ import annotations
 
@@ -38,12 +38,12 @@ def parquet_overview(path: str) -> list[str]:
     lines = [
         f"### {path}",
         "",
-        f"- rows: {pf.metadata.num_rows:,}",
-        f"- columns: {pf.metadata.num_columns:,}",
-        f"- row groups: {pf.metadata.num_row_groups:,}",
-        f"- types: {type_counts}",
+        f"- 행 수: {pf.metadata.num_rows:,}",
+        f"- 열 수: {pf.metadata.num_columns:,}",
+        f"- row group 개수: {pf.metadata.num_row_groups:,}",
+        f"- 타입 분포: {type_counts}",
         "",
-        "| idx | column | type |",
+        "| 인덱스 | 컬럼 | 타입 |",
         "|---:|---|---|",
     ]
     for idx, field in enumerate(schema):
@@ -67,11 +67,11 @@ def df_to_markdown(con: duckdb.DuckDBPyConnection, query: str) -> str:
 
 def build_summary(train_path: str, test_path: str, cardinality_cols: list[str]) -> str:
     con = duckdb.connect()
-    lines = ["# Toss CTR EDA Summary", ""]
+    lines = ["# 토스 CTR EDA 요약", ""]
     lines += parquet_overview(train_path)
     lines += parquet_overview(test_path)
 
-    lines += ["## Target", ""]
+    lines += ["## 타깃 분포", ""]
     lines.append(
         df_to_markdown(
             con,
@@ -86,7 +86,7 @@ def build_summary(train_path: str, test_path: str, cardinality_cols: list[str]) 
     )
     lines.append("")
 
-    lines += ["## Day / Hour Distribution", "", "### Train by day", ""]
+    lines += ["## 요일/시간 분포", "", "### Train 요일별 분포", ""]
     lines.append(
         df_to_markdown(
             con,
@@ -98,7 +98,7 @@ def build_summary(train_path: str, test_path: str, cardinality_cols: list[str]) 
             """,
         )
     )
-    lines += ["", "### Test by day", ""]
+    lines += ["", "### Test 요일별 분포", ""]
     lines.append(
         df_to_markdown(
             con,
@@ -110,7 +110,7 @@ def build_summary(train_path: str, test_path: str, cardinality_cols: list[str]) 
             """,
         )
     )
-    lines += ["", "### Train by hour", ""]
+    lines += ["", "### Train 시간별 분포", ""]
     lines.append(
         df_to_markdown(
             con,
@@ -122,7 +122,7 @@ def build_summary(train_path: str, test_path: str, cardinality_cols: list[str]) 
             """,
         )
     )
-    lines += ["", "### Test by hour", ""]
+    lines += ["", "### Test 시간별 분포", ""]
     lines.append(
         df_to_markdown(
             con,
@@ -148,7 +148,7 @@ def build_summary(train_path: str, test_path: str, cardinality_cols: list[str]) 
         """
         for col in selected
     ]
-    lines += ["## Selected Cardinalities", ""]
+    lines += ["## 주요 컬럼 cardinality", ""]
     lines.append(df_to_markdown(con, " union all ".join(union_parts)))
     lines.append("")
     return "\n".join(lines)
@@ -170,7 +170,7 @@ def main() -> None:
         build_summary(args.train_path, args.test_path, DEFAULT_CARDINALITY_COLS),
         encoding="utf-8",
     )
-    print(f"Wrote {output}")
+    print(f"EDA 요약 저장: {output}")
 
 
 if __name__ == "__main__":

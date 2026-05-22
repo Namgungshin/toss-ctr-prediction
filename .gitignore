@@ -1,20 +1,20 @@
-# Local/system files
+# 로컬/시스템 파일
 .DS_Store
 __pycache__/
 *.py[cod]
 
-# Competition data and generated artifacts
+# 대회 데이터와 생성 산출물
 *.parquet
 sample_submission.csv
 test_write.txt
 models/
 submissions/
 
-# Local Python environments
+# 로컬 Python 환경
 .venv/
 venv/
 env/
 
-# Notebook/runtime clutter
+# 노트북/런타임 캐시
 .ipynb_checkpoints/
 .pytest_cache/

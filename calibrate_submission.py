@@ -1,4 +1,4 @@
-"""Calibrate a LightGBM submission using the training prior or validation labels."""
+"""학습 prior 또는 검증 라벨 기반으로 LightGBM 제출 파일을 보정한다."""
 
 from __future__ import annotations
 
@@ -11,10 +11,10 @@ import pandas as pd
 
 
 def prior_correct(pred: np.ndarray, train_ctr: float) -> np.ndarray:
-    """Undo class-balanced training prior shift.
+    """class-balanced 학습으로 생긴 prior shift를 되돌린다.
 
-    With equal total class weight, the model's probability is close to a
-    balanced-prior posterior. Convert those odds back to the observed CTR prior.
+    클래스별 총 가중치가 같으면 모델 확률은 balanced-prior posterior에 가깝다.
+    이 odds를 관측된 CTR prior 기준으로 되돌린다.
     """
     pred = np.clip(pred, 1e-15, 1.0 - 1e-15)
     odds = pred / (1.0 - pred)
@@ -56,7 +56,7 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     submission.to_csv(output, index=False)
     print(f"train_ctr={train_ctr:.8f}")
-    print(f"Wrote {output} with shape {submission.shape}")
+    print(f"보정 제출 파일 저장: {output}, shape={submission.shape}")
     print(submission["clicked"].describe().to_string())
 
 

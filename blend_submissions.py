@@ -1,4 +1,4 @@
-"""Blend two DACON submission files."""
+"""DACON 제출 파일 두 개를 단순 가중 평균으로 블렌딩한다."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     if not 0.0 <= args.base_weight <= 1.0:
-        raise ValueError("--base-weight must be in [0, 1]")
+        raise ValueError("--base-weight는 [0, 1] 범위여야 합니다.")
 
     base = pd.read_csv(args.base)
     other = pd.read_csv(args.other)
@@ -34,7 +34,7 @@ def main() -> None:
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     submission.to_csv(output, index=False)
-    print(f"Wrote {output} with shape {submission.shape}")
+    print(f"블렌딩 제출 파일 저장: {output}, shape={submission.shape}")
     print(submission["clicked"].describe().to_string())
 
 
