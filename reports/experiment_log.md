@@ -10,6 +10,9 @@
 | `submissions/blend_base60_seq40.csv` | n/a | 0.3405770109 | 베이스라인 60% + seq 40% 블렌드. 현재 최고 점수 |
 | `submissions/blend_base55_seq45.csv` | n/a | 0.3405770109 | 베이스라인 55% + seq 45% 블렌드. 60:40과 동률 |
 | `submissions/blend_base50_seq50.csv` | n/a | 미제출 | 베이스라인 50% + seq 50% 블렌드 후보 |
+| `submissions/baseline_lgbm_seq_count.csv` | AP 0.06051 / WLL 0.61784 | 미제출 | 기본 seq 피처와 빈도 인코딩 추가 |
+| `submissions/blend_best70_seq_count30.csv` | n/a | 미제출 | 현재 최고 70% + seq_count 30% 블렌드 후보 |
+| `submissions/blend_best50_seq_count50.csv` | n/a | 미제출 | 현재 최고 50% + seq_count 50% 블렌드 후보 |
 
 ## 현재 해석
 
@@ -17,4 +20,5 @@
 - 기본 `seq` 피처는 로컬 AP를 조금 올렸지만 WLL은 살짝 나빠졌다. 다만 baseline과 섞으면 공개 리더보드에서 소폭 개선됐다.
 - 80:20 < 70:30 < 60:40 순서로 개선됐고, 55:45는 60:40과 동률이다.
 - 현재 블렌드 최적점은 seq 비중 40~45% 부근으로 보인다.
-- 다음 우선순위는 50:50 블렌드 확인 또는 안정적인 범주형 그룹에 대한 빈도 인코딩, 타깃 인코딩이다.
+- 빈도 인코딩을 추가한 모델은 day7 검증에서 AP 0.06051 / WLL 0.61784로 기존 seq 모델보다 개선됐다.
+- 다음 우선순위는 `baseline_lgbm_seq_count.csv` 단독 제출, 현재 최고 블렌드와 seq_count 모델의 블렌드 확인, 이후 타깃 인코딩이다.

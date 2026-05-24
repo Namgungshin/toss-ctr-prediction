@@ -81,6 +81,18 @@ python3 train_baseline.py \
   --seed 42
 ```
 
+기본 `seq` 피처와 빈도 인코딩을 포함한 모델 학습:
+
+```bash
+python3 train_baseline.py \
+  --output-dir models/baseline_lgbm_seq_count \
+  --train-sample-frac 0.10 \
+  --valid-sample-frac 0.30 \
+  --use-seq-features \
+  --use-count-features \
+  --seed 42
+```
+
 ## 현재 결과
 
 | 제출 파일 | 로컬 검증 | 공개 리더보드 점수 | 메모 |
@@ -92,6 +104,7 @@ python3 train_baseline.py \
 | `blend_base70_seq30.csv` | n/a | 0.3405715349 | 베이스라인 70% + seq 30% 블렌드 |
 | `blend_base60_seq40.csv` | n/a | 0.3405770109 | 베이스라인 60% + seq 40% 블렌드. 현재 최고 점수 |
 | `blend_base55_seq45.csv` | n/a | 0.3405770109 | 베이스라인 55% + seq 45% 블렌드. 60:40과 동률 |
+| `baseline_lgbm_seq_count.csv` | AP 0.06051 / WLL 0.61784 | 미제출 | 기본 seq 피처와 빈도 인코딩을 추가한 모델 |
 
 ## 현재까지의 결론
 
@@ -99,4 +112,5 @@ python3 train_baseline.py \
 - 예측값을 실제 train CTR 사전확률까지 낮추는 보정은 사용하지 않는다. 공개 리더보드 점수가 크게 하락했다.
 - 기본 `seq` 피처는 단독 제출보다 블렌딩에서 더 유용할 가능성이 있다.
 - 80:20보다 70:30, 70:30보다 60:40이 좋았고, 55:45는 60:40과 동률이었다.
-- 다음으로는 50:50 블렌드 확인 또는 안정적인 범주 조합에 대한 빈도 인코딩, 누수를 막은 타깃 인코딩, 더 정교한 시퀀스 파생 피처를 실험한다.
+- 빈도 인코딩을 추가한 모델은 day7 검증 AP를 0.06051까지 올렸다.
+- 다음으로는 `baseline_lgbm_seq_count.csv` 단독 제출 또는 현재 최고 블렌드와 count 모델의 블렌드를 확인하고, 이후 누수를 막은 타깃 인코딩과 더 정교한 시퀀스 파생 피처를 실험한다.

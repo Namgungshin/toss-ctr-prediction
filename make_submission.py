@@ -6,11 +6,13 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/matplotlib")
 
 import duckdb
 import lightgbm as lgb
+import numpy as np
 import pandas as pd
 
 
@@ -38,6 +40,28 @@ def coerce_features(df: pd.DataFrame, feature_columns: list[str]) -> pd.DataFram
     return df
 
 
+def count_key(df: pd.DataFrame, columns: list[str]) -> pd.Series:
+    parts = [df[col].astype("string").fillna("__NA__") for col in columns]
+    key = parts[0]
+    for part in parts[1:]:
+        key = key + "||" + part
+    return key
+
+
+def add_count_features(df: pd.DataFrame, count_maps: dict[str, Any]) -> None:
+    for name, info in count_maps.items():
+        columns = info["columns"]
+        count_col = info["count_col"]
+        freq_col = info["freq_col"]
+        n_train = max(int(info["n_train"]), 1)
+        counts = info["counts"]
+        key = count_key(df, columns)
+        count = key.map(counts).fillna(0).astype("float32")
+        df[count_col] = np.log1p(count).astype("float32")
+        df[freq_col] = (count / n_train).astype("float32")
+        print(f"count feature 적용: {name}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--test-path", default="test.parquet")
@@ -52,13 +76,18 @@ def main() -> None:
     model_dir = Path(args.model_dir)
     metadata = json.loads((model_dir / "metadata.json").read_text(encoding="utf-8"))
     feature_columns = metadata["feature_columns"]
+    raw_feature_columns = metadata.get("raw_feature_columns", feature_columns)
 
-    selected = ", ".join(["ID"] + [select_expr(col) for col in feature_columns])
+    selected = ", ".join(["ID"] + [select_expr(col) for col in raw_feature_columns])
     con = duckdb.connect()
     test_df = con.execute(
         f"select {selected} from read_parquet('{args.test_path}') order by ID"
     ).fetchdf()
     ids = test_df["ID"].copy()
+    count_maps_path = model_dir / "count_maps.json"
+    if metadata.get("use_count_features") and count_maps_path.exists():
+        count_maps = json.loads(count_maps_path.read_text(encoding="utf-8"))
+        add_count_features(test_df, count_maps)
     test_df = coerce_features(test_df, feature_columns)
 
     model = lgb.Booster(model_file=str(model_dir / "model.txt"))

@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/matplotlib")
 
@@ -31,6 +32,19 @@ SEQ_FEATURE_EXPRESSIONS = {
     "seq_last": "cast(list_extract(string_split(seq, ','), array_length(string_split(seq, ','))) as float)",
     "seq_unique": "list_unique(string_split(seq, ','))",
 }
+COUNT_FEATURE_GROUPS = [
+    ("gender", ["gender"]),
+    ("age_group", ["age_group"]),
+    ("inventory_id", ["inventory_id"]),
+    ("hour", ["hour"]),
+    ("l_feat_14", ["l_feat_14"]),
+    ("feat_b_1", ["feat_b_1"]),
+    ("inventory_hour", ["inventory_id", "hour"]),
+    ("inventory_age", ["inventory_id", "age_group"]),
+    ("inventory_lfeat14", ["inventory_id", "l_feat_14"]),
+    ("lfeat14_hour", ["l_feat_14", "hour"]),
+    ("gender_age_inventory", ["gender", "age_group", "inventory_id"]),
+]
 
 
 def get_feature_columns(train_path: str, use_seq_features: bool) -> list[str]:
@@ -82,6 +96,56 @@ def coerce_features(df: pd.DataFrame, feature_columns: list[str]) -> pd.DataFram
         elif pd.api.types.is_integer_dtype(df[col]):
             df[col] = df[col].astype("float32")
     return df
+
+
+def count_key(df: pd.DataFrame, columns: list[str]) -> pd.Series:
+    parts = [df[col].astype("string").fillna("__NA__") for col in columns]
+    key = parts[0]
+    for part in parts[1:]:
+        key = key + "||" + part
+    return key
+
+
+def add_count_features(
+    train_df: pd.DataFrame,
+    valid_df: pd.DataFrame,
+    groups: list[tuple[str, list[str]]],
+) -> tuple[list[str], dict[str, Any]]:
+    feature_names: list[str] = []
+    count_maps: dict[str, Any] = {}
+    n_train = len(train_df)
+
+    for name, columns in groups:
+        missing = [col for col in columns if col not in train_df.columns]
+        if missing:
+            print(f"count feature {name} 건너뜀: 없는 컬럼 {missing}")
+            continue
+
+        train_key = count_key(train_df, columns)
+        valid_key = count_key(valid_df, columns)
+        counts = train_key.value_counts(dropna=False)
+        count_map = {str(key): int(value) for key, value in counts.items()}
+
+        count_col = f"cnt_{name}_log"
+        freq_col = f"cnt_{name}_freq"
+        train_count = train_key.map(count_map).fillna(0).astype("float32")
+        valid_count = valid_key.map(count_map).fillna(0).astype("float32")
+        train_df[count_col] = np.log1p(train_count).astype("float32")
+        valid_df[count_col] = np.log1p(valid_count).astype("float32")
+        train_df[freq_col] = (train_count / max(n_train, 1)).astype("float32")
+        valid_df[freq_col] = (valid_count / max(n_train, 1)).astype("float32")
+
+        feature_names.extend([count_col, freq_col])
+        count_maps[name] = {
+            "columns": columns,
+            "count_col": count_col,
+            "freq_col": freq_col,
+            "n_train": n_train,
+            "counts": count_map,
+        }
+        print(f"count feature 추가: {name}, unique={len(count_map):,}")
+
+    return feature_names, count_maps
 
 
 def balanced_sample_weight(y: pd.Series) -> np.ndarray:
@@ -198,6 +262,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--valid-sample-frac", type=float, default=0.30)
     parser.add_argument("--random-valid-size", type=float, default=0.20)
     parser.add_argument("--use-seq-features", action="store_true")
+    parser.add_argument("--use-count-features", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -207,7 +272,8 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    feature_columns = get_feature_columns(args.train_path, args.use_seq_features)
+    raw_feature_columns = get_feature_columns(args.train_path, args.use_seq_features)
+    feature_columns = list(raw_feature_columns)
     con = duckdb.connect()
     if args.validation == "day7":
         train_df, valid_df = make_day7_split(
@@ -231,19 +297,39 @@ def main() -> None:
     print(f"train 크기: {train_df.shape}, valid 크기: {valid_df.shape}")
     print(f"train ctr: {train_df['clicked'].mean():.6f}, valid ctr: {valid_df['clicked'].mean():.6f}")
 
+    count_maps: dict[str, Any] = {}
+    count_feature_columns: list[str] = []
+    if args.use_count_features:
+        count_feature_columns, count_maps = add_count_features(
+            train_df,
+            valid_df,
+            COUNT_FEATURE_GROUPS,
+        )
+        feature_columns += count_feature_columns
+        print(f"count feature 총 {len(count_feature_columns)}개 추가")
+
     model, metrics, valid_pred = train_model(train_df, valid_df, feature_columns, args.seed)
     model_path = output_dir / "model.txt"
     metadata_path = output_dir / "metadata.json"
+    count_maps_path = output_dir / "count_maps.json"
     valid_pred_path = output_dir / "valid_predictions.csv"
     model.booster_.save_model(str(model_path), num_iteration=model.best_iteration_)
+    if args.use_count_features:
+        count_maps_path.write_text(
+            json.dumps(count_maps, ensure_ascii=False),
+            encoding="utf-8",
+        )
     metadata_path.write_text(
         json.dumps(
             {
                 "feature_columns": feature_columns,
+                "raw_feature_columns": raw_feature_columns,
+                "count_feature_columns": count_feature_columns,
                 "validation": args.validation,
                 "train_sample_frac": args.train_sample_frac,
                 "valid_sample_frac": args.valid_sample_frac,
                 "use_seq_features": args.use_seq_features,
+                "use_count_features": args.use_count_features,
                 "seed": args.seed,
                 "best_iteration": model.best_iteration_,
                 "metrics": metrics,
