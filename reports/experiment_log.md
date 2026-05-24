@@ -14,6 +14,9 @@
 | `submissions/blend_best90_seq_count10.csv` | n/a | 미제출 | 현재 최고 90% + seq_count 10% 저위험 블렌드 후보 |
 | `submissions/blend_best70_seq_count30.csv` | n/a | 미제출 | 현재 최고 70% + seq_count 30% 블렌드 후보. 단독 count 악화로 위험도 높음 |
 | `submissions/blend_best50_seq_count50.csv` | n/a | 미제출 | 현재 최고 50% + seq_count 50% 블렌드 후보. 단독 count 악화로 위험도 높음 |
+| `submissions/baseline_lgbm_seq_stable_count.csv` | AP 0.06086 / WLL 0.61794 | 미제출 | 고카디널리티 조합과 frequency 피처를 뺀 stable count 재설계 |
+| `submissions/blend_best90_stable_count10.csv` | n/a | 미제출 | 현재 최고 90% + stable_count 10% 블렌드 후보 |
+| `submissions/blend_best80_stable_count20.csv` | n/a | 미제출 | 현재 최고 80% + stable_count 20% 블렌드 후보 |
 
 ## 현재 해석
 
@@ -23,4 +26,6 @@
 - 현재 블렌드 최적점은 seq 비중 40~45% 부근으로 보인다.
 - 빈도 인코딩을 추가한 모델은 day7 검증에서 AP 0.06051 / WLL 0.61784로 개선됐지만, Public 점수는 0.339500066으로 크게 악화됐다.
 - 현재 count encoding 방식은 day7 validation에는 맞지만 public 분포에는 과적합 또는 분포 불일치가 있는 것으로 본다.
-- 다음 우선순위는 기존 최고 블렌드를 유지하면서 count 모델은 낮은 비율 블렌드만 조심스럽게 확인하거나, count encoding 설계를 재검토하는 것이다.
+- count encoding 재설계에서는 `feat_b_1`, `inventory_id × l_feat_14`, `l_feat_14 × hour` 같은 흔들리기 쉬운 고카디널리티 조합과 frequency 피처를 기본에서 제외했다.
+- stable count 재설계 모델은 day7 검증에서 AP 0.06086 / WLL 0.61794를 기록했다.
+- 다음 우선순위는 stable count 모델을 단독 제출하기보다 현재 최고와 낮은 비율로 섞은 `blend_best90_stable_count10.csv`를 먼저 확인하는 것이다.

@@ -52,13 +52,13 @@ def add_count_features(df: pd.DataFrame, count_maps: dict[str, Any]) -> None:
     for name, info in count_maps.items():
         columns = info["columns"]
         count_col = info["count_col"]
-        freq_col = info["freq_col"]
         n_train = max(int(info["n_train"]), 1)
         counts = info["counts"]
         key = count_key(df, columns)
         count = key.map(counts).fillna(0).astype("float32")
         df[count_col] = np.log1p(count).astype("float32")
-        df[freq_col] = (count / n_train).astype("float32")
+        if "freq_col" in info:
+            df[info["freq_col"]] = (count / n_train).astype("float32")
         print(f"count feature 적용: {name}")
 
 

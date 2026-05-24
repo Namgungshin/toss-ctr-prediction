@@ -90,6 +90,7 @@ python3 train_baseline.py \
   --valid-sample-frac 0.30 \
   --use-seq-features \
   --use-count-features \
+  --count-feature-set stable \
   --seed 42
 ```
 
@@ -106,6 +107,9 @@ python3 train_baseline.py \
 | `blend_base55_seq45.csv` | n/a | 0.3405770109 | 베이스라인 55% + seq 45% 블렌드. 60:40과 동률 |
 | `baseline_lgbm_seq_count.csv` | AP 0.06051 / WLL 0.61784 | 0.339500066 | 기본 seq 피처와 빈도 인코딩 추가. Public에서는 악화 |
 | `blend_best90_seq_count10.csv` | n/a | 미제출 | 현재 최고 90% + seq_count 10% 저위험 블렌드 후보 |
+| `baseline_lgbm_seq_stable_count.csv` | AP 0.06086 / WLL 0.61794 | 미제출 | 안정적인 count feature만 사용한 재설계 모델 |
+| `blend_best90_stable_count10.csv` | n/a | 미제출 | 현재 최고 90% + stable_count 10% 블렌드 후보 |
+| `blend_best80_stable_count20.csv` | n/a | 미제출 | 현재 최고 80% + stable_count 20% 블렌드 후보 |
 
 ## 현재까지의 결론
 
@@ -114,4 +118,6 @@ python3 train_baseline.py \
 - 기본 `seq` 피처는 단독 제출보다 블렌딩에서 더 유용할 가능성이 있다.
 - 80:20보다 70:30, 70:30보다 60:40이 좋았고, 55:45는 60:40과 동률이었다.
 - 빈도 인코딩을 추가한 모델은 day7 검증 AP를 0.06051까지 올렸지만 Public 점수는 0.339500066으로 악화됐다.
-- 다음으로는 기존 최고 블렌드를 유지하고, count 모델은 낮은 비율 블렌드만 조심스럽게 확인하거나 count encoding 설계를 재검토한다.
+- count encoding 재설계에서는 고카디널리티 조합과 중복적인 frequency 피처를 기본에서 제외했다.
+- stable count 재설계 모델은 day7 검증 AP 0.06086을 기록했다.
+- 다음으로는 `blend_best90_stable_count10.csv`처럼 낮은 비율 블렌드부터 조심스럽게 확인한다.

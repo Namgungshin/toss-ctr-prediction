@@ -32,19 +32,37 @@ SEQ_FEATURE_EXPRESSIONS = {
     "seq_last": "cast(list_extract(string_split(seq, ','), array_length(string_split(seq, ','))) as float)",
     "seq_unique": "list_unique(string_split(seq, ','))",
 }
-COUNT_FEATURE_GROUPS = [
-    ("gender", ["gender"]),
-    ("age_group", ["age_group"]),
-    ("inventory_id", ["inventory_id"]),
-    ("hour", ["hour"]),
-    ("l_feat_14", ["l_feat_14"]),
-    ("feat_b_1", ["feat_b_1"]),
-    ("inventory_hour", ["inventory_id", "hour"]),
-    ("inventory_age", ["inventory_id", "age_group"]),
-    ("inventory_lfeat14", ["inventory_id", "l_feat_14"]),
-    ("lfeat14_hour", ["l_feat_14", "hour"]),
-    ("gender_age_inventory", ["gender", "age_group", "inventory_id"]),
-]
+COUNT_FEATURE_GROUP_SETS = {
+    "minimal": [
+        ("inventory_id", ["inventory_id"]),
+        ("hour", ["hour"]),
+        ("l_feat_14", ["l_feat_14"]),
+        ("inventory_hour", ["inventory_id", "hour"]),
+    ],
+    "stable": [
+        ("gender", ["gender"]),
+        ("age_group", ["age_group"]),
+        ("inventory_id", ["inventory_id"]),
+        ("hour", ["hour"]),
+        ("l_feat_14", ["l_feat_14"]),
+        ("inventory_hour", ["inventory_id", "hour"]),
+        ("inventory_age", ["inventory_id", "age_group"]),
+        ("gender_age_inventory", ["gender", "age_group", "inventory_id"]),
+    ],
+    "full": [
+        ("gender", ["gender"]),
+        ("age_group", ["age_group"]),
+        ("inventory_id", ["inventory_id"]),
+        ("hour", ["hour"]),
+        ("l_feat_14", ["l_feat_14"]),
+        ("feat_b_1", ["feat_b_1"]),
+        ("inventory_hour", ["inventory_id", "hour"]),
+        ("inventory_age", ["inventory_id", "age_group"]),
+        ("inventory_lfeat14", ["inventory_id", "l_feat_14"]),
+        ("lfeat14_hour", ["l_feat_14", "hour"]),
+        ("gender_age_inventory", ["gender", "age_group", "inventory_id"]),
+    ],
+}
 
 
 def get_feature_columns(train_path: str, use_seq_features: bool) -> list[str]:
@@ -110,6 +128,7 @@ def add_count_features(
     train_df: pd.DataFrame,
     valid_df: pd.DataFrame,
     groups: list[tuple[str, list[str]]],
+    include_freq: bool,
 ) -> tuple[list[str], dict[str, Any]]:
     feature_names: list[str] = []
     count_maps: dict[str, Any] = {}
@@ -127,21 +146,27 @@ def add_count_features(
         count_map = {str(key): int(value) for key, value in counts.items()}
 
         count_col = f"cnt_{name}_log"
-        freq_col = f"cnt_{name}_freq"
         train_count = train_key.map(count_map).fillna(0).astype("float32")
         valid_count = valid_key.map(count_map).fillna(0).astype("float32")
         train_df[count_col] = np.log1p(train_count).astype("float32")
         valid_df[count_col] = np.log1p(valid_count).astype("float32")
-        train_df[freq_col] = (train_count / max(n_train, 1)).astype("float32")
-        valid_df[freq_col] = (valid_count / max(n_train, 1)).astype("float32")
 
-        feature_names.extend([count_col, freq_col])
-        count_maps[name] = {
+        info = {
             "columns": columns,
             "count_col": count_col,
-            "freq_col": freq_col,
             "n_train": n_train,
             "counts": count_map,
+        }
+        feature_names.append(count_col)
+        if include_freq:
+            freq_col = f"cnt_{name}_freq"
+            train_df[freq_col] = (train_count / max(n_train, 1)).astype("float32")
+            valid_df[freq_col] = (valid_count / max(n_train, 1)).astype("float32")
+            feature_names.append(freq_col)
+            info["freq_col"] = freq_col
+
+        count_maps[name] = {
+            **info,
         }
         print(f"count feature 추가: {name}, unique={len(count_map):,}")
 
@@ -263,6 +288,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--random-valid-size", type=float, default=0.20)
     parser.add_argument("--use-seq-features", action="store_true")
     parser.add_argument("--use-count-features", action="store_true")
+    parser.add_argument(
+        "--count-feature-set",
+        choices=sorted(COUNT_FEATURE_GROUP_SETS),
+        default="stable",
+    )
+    parser.add_argument("--count-include-freq", action="store_true")
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -303,10 +334,14 @@ def main() -> None:
         count_feature_columns, count_maps = add_count_features(
             train_df,
             valid_df,
-            COUNT_FEATURE_GROUPS,
+            COUNT_FEATURE_GROUP_SETS[args.count_feature_set],
+            args.count_include_freq,
         )
         feature_columns += count_feature_columns
-        print(f"count feature 총 {len(count_feature_columns)}개 추가")
+        print(
+            f"count feature set={args.count_feature_set}, "
+            f"include_freq={args.count_include_freq}, 총 {len(count_feature_columns)}개 추가"
+        )
 
     model, metrics, valid_pred = train_model(train_df, valid_df, feature_columns, args.seed)
     model_path = output_dir / "model.txt"
@@ -330,6 +365,8 @@ def main() -> None:
                 "valid_sample_frac": args.valid_sample_frac,
                 "use_seq_features": args.use_seq_features,
                 "use_count_features": args.use_count_features,
+                "count_feature_set": args.count_feature_set,
+                "count_include_freq": args.count_include_freq,
                 "seed": args.seed,
                 "best_iteration": model.best_iteration_,
                 "metrics": metrics,
