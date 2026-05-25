@@ -108,8 +108,8 @@ python3 train_baseline.py \
 | `baseline_lgbm_seq_count.csv` | AP 0.06051 / WLL 0.61784 | 0.339500066 | 기본 seq 피처와 빈도 인코딩 추가. Public에서는 악화 |
 | `blend_best90_seq_count10.csv` | n/a | 미제출 | 현재 최고 90% + seq_count 10% 저위험 블렌드 후보 |
 | `baseline_lgbm_seq_stable_count.csv` | AP 0.06086 / WLL 0.61794 | 미제출 | 안정적인 count feature만 사용한 재설계 모델 |
-| `blend_best90_stable_count10.csv` | n/a | 0.3407317289 | 기존 최고 90% + stable_count 10% 블렌드. 현재 최고 점수 |
-| `blend_best80_stable_count20.csv` | n/a | 미제출 | 현재 최고 80% + stable_count 20% 블렌드 후보 |
+| `blend_best90_stable_count10.csv` | n/a | 0.3407317289 | 기존 최고 90% + stable_count 10% 블렌드 |
+| `blend_best80_stable_count20.csv` | n/a | 0.3408619882 | 기존 최고 80% + stable_count 20% 블렌드. 현재 최고 점수 |
 
 ## 현재까지의 결론
 
@@ -120,5 +120,5 @@ python3 train_baseline.py \
 - 빈도 인코딩을 추가한 모델은 day7 검증 AP를 0.06051까지 올렸지만 Public 점수는 0.339500066으로 악화됐다.
 - count encoding 재설계에서는 고카디널리티 조합과 중복적인 frequency 피처를 기본에서 제외했다.
 - stable count 재설계 모델은 day7 검증 AP 0.06086을 기록했다.
-- stable count 10% 블렌드는 Public 0.3407317289로 최고점을 갱신했다.
-- 다음으로는 `blend_best80_stable_count20.csv`를 확인해 stable count 비중을 더 올려도 되는지 본다.
+- stable count 블렌드는 10%보다 20% 비중이 더 좋아 Public 0.3408619882로 최고점을 갱신했다.
+- 다음으로는 stable count 30% 블렌드를 확인해 최적 비중이 더 높은지 본다.
