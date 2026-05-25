@@ -29,6 +29,7 @@ DACON 토스 광고 클릭 예측 경진대회 실험용 작업 공간입니다.
 | `blend_submissions.py` | 제출 파일 단순 블렌딩 유틸리티 |
 | `reports/eda_summary.md` | 로컬 데이터 기준 EDA 요약 |
 | `reports/experiment_log.md` | 제출 결과와 실험 기록 |
+| `reports/official_baseline_review.md` | 대회 제공 LSTM+MLP 베이스라인 검토 |
 
 ## 환경 준비
 

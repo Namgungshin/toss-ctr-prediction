@@ -18,3 +18,4 @@ env/
 # 노트북/런타임 캐시
 .ipynb_checkpoints/
 .pytest_cache/
+*.ipynb
